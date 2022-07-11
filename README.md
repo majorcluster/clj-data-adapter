@@ -1,6 +1,6 @@
 # clj-data-adapter
 
-![Clojars Project](https://img.shields.io/clojars/v/org.clojars.majorcluster/clj-data-adapter.svg)
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.majorcluster/clj-data-adapter.svg)](https://clojars.org/org.clojars.majorcluster/clj-data-adapter)
 
 A Clojure library designed to have handy data conversions
 Particularly useful when transferring data between ports (external sources) into your logic layers and vice-versa
