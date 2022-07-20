@@ -46,6 +46,13 @@
              namespaced-key->kebab-key
              [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
               {:test/id 4, :test/price 9.40M}]))))
+  (testing "when fn returns nil, removes kv"
+    (is (= [{:test/id 1, :test/name "croissant", :test/price 5.40M}
+            {:test/id 4, :test/price 9.40M}]
+           (transform-keys
+             #(if (= :test/unit-grams %) nil %)
+             [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
+              {:test/id 4, :test/price 9.40M}]))))
   (testing "empties give no ex"
     (is (= {}
            (transform-keys namespaced-key->kebab-key {})))
@@ -94,4 +101,14 @@
       (is (= [{:name "pita" :password "my-pwd-hashed"}
               {:name "croissant" :password "open sesame-hashed"}]
              (transform-values my-fn [{:name "pita" :password "my-pwd"}
-                                      {:name "croissant" :password "open sesame"}]))))))
+                                      {:name "croissant" :password "open sesame"}])))))
+  (testing "when fn returns nil removes kv"
+    (is (= {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
+           (transform-values #(if (= %2 "Lebanon") nil %2)
+                             {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c" :from "Lebanon"})))
+    (is (= {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
+           (transform-values #(if (= % :from) nil %2)
+                             {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c" :from "Lebanon"})))
+    (is (= [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "croissant"}]
+           (transform-values #(if (= %2 "Lebanon") nil %2)
+                             [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c" :from "Lebanon"}{:name "croissant"}])))))

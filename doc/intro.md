@@ -38,7 +38,7 @@
   - returns value converted if `uuid?`
 - <a id='transform-keys'></a> **transform-keys** [transform-fn coll]
   - Recursively transforms all map keys in coll with the transform-fn.
-  - transform-fn ^fn : function receiving key as parameter and converting it
+  - transform-fn ^fn : function receiving key as parameter and converting it, when returns nil removes the kv
   - coll ^collection : collection being single map itself or a collection of maps to get keys transformed recursively
 ```clojure
 (transform-keys kebab-key->snake-str {:my-message "something" :payload {:my-name "Lenin"}})
@@ -49,7 +49,7 @@
 ```
 - <a id='transform-values'></a> **transform-values** [transform-fn coll]
   - Recursively transforms all map values in coll with the transform-fn.
-  - transform-fn ^fn [k v] : function receiving key and value as parameters and converting them
+  - transform-fn ^fn [k v] : function receiving key and value as parameters and converting the value, when returns nil removes the kv
   - coll ^collection : collection being single map itself or a collection of maps to get values transformed recursively
 ```clojure
 (transform-values uuid->str {:name "something" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"})

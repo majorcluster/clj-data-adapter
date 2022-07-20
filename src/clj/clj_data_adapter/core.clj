@@ -72,18 +72,22 @@
         :else v))
 
 (defn transform-keys
-  "Recursively transforms all map keys in coll with the transform-fn [k]"
+  "Recursively transforms all map keys in coll with the transform-fn [k], when result of fn is nil removes the kv"
   [transform-fn coll]
   (letfn [(transform [x] (if (map? x)
-                           (into {} (map (fn [[k v]] [(transform-fn k) v]) x))
+                           (into {} (map (fn [[k v]]
+                                           (if-let [new-key (transform-fn k)]
+                                             [new-key v])) x))
                            x))]
     (walk/postwalk transform coll)))
 
 (defn transform-values
-  "Recursively transforms all map values in coll with the transform-fn [k v]"
+  "Recursively transforms all map values in coll with the transform-fn [k v], when result of fn is nil removes the kv"
   [transform-fn coll]
   (letfn [(transform [x] (if (map? x)
-                           (into {} (map (fn [[k v]] [k (transform-fn k v)]) x))
+                           (into {} (map (fn [[k v]]
+                                           (if-let [value (transform-fn k v)]
+                                             [k value])) x))
                            x))]
     (walk/postwalk transform coll)))
 
