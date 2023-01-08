@@ -70,6 +70,20 @@
   [_ v]
   (cond (uuid? v) (.toString v)
         :else v))
+(defn transform
+ "Recursively transform map m using placeholder-map as a source
+ for extracting values and building it
+ ex. (transform {:a {:name :a-name} :b \"Fixed value\"} {:a-name \"Aaay\"})
+    => {:a {:name \"Aaay\"} :b \"Fixed value\"}"
+ ([acc-m placeholder-map m]
+  (reduce (fn [acc-m [k v]]
+            (cond (keyword? v) (assoc acc-m k (get m v v))
+                  (map? v) (assoc acc-m k (transform {} v m))
+                  (fn? v) (assoc acc-m k (v m k))
+                  :else (assoc acc-m k v)))
+          acc-m placeholder-map))
+  ([placeholder-map m]
+   (transform {} placeholder-map m)))
 
 (defn transform-keys
   "Recursively transforms all map keys in coll with the transform-fn [k], when result of fn is nil removes the kv"
@@ -90,4 +104,3 @@
                                              [k value])) x))
                            x))]
     (walk/postwalk transform coll)))
-

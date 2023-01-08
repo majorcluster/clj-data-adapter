@@ -36,6 +36,18 @@
   - k : key from entry, not used
   - v : value from entry to be converted
   - returns value converted if `uuid?`
+- <a id='transform-keys'></a> **transform** [placeholder-map m]
+  - Recursively transforms map `m` following patterns defined at `placeholder-map`.
+```clojure
+(transform {:a :a-name 
+            :b "Fixed value"} {:a-name "Aay"})
+; => {:a "Aay", :b "Fixed value"}
+
+(transform {:a {:name :a-name
+                :surname (fn [m k] "the Letter")}
+            :b 8} {:a-name "Aay"})
+; => {:a {:name "Aay", :surname "the Letter"}, :b 8}
+```
 - <a id='transform-keys'></a> **transform-keys** [transform-fn coll]
   - Recursively transforms all map keys in coll with the transform-fn.
   - transform-fn ^fn : function receiving key as parameter and converting it, when returns nil removes the kv
@@ -59,4 +71,3 @@
                              {:name "smt else" :id #uuid "3a22cc9f-e854-4f93-b6c5-cda86c48544c"}])
 ; => [{:name "something" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "smt else" :id "3a22cc9f-e854-4f93-b6c5-cda86c48544c"}]
 ```
-

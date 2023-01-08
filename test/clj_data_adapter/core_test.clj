@@ -112,3 +112,44 @@
     (is (= [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "croissant"}]
            (transform-values #(if (= %2 "Lebanon") nil %2)
                              [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c" :from "Lebanon"}{:name "croissant"}])))))
+
+(deftest transform-test
+  (testing "simple transform"
+    (is (= {:name "john baker" :age 54}
+           (transform {:name :baker-name
+                       :age 54}
+                      {:baker-name "john baker"}))))
+  (testing "no transform"
+    (is (= {:name :baker-name}
+           (transform {:name :baker-name}
+                      {:baker-full-name "john baker"})))
+    (is (= {}
+           (transform {}
+                      {:baker-full-name "john baker"}))))
+  (testing "deep transform with keywords and fixed value"
+    (is (= {:bakery {:new {:name "Padoca"
+                           :street "Geologicka"}
+                     :old {:name "Pekarstvi"}
+                     :old-name "Pekarstvi"
+                     :fixed-val 10}}
+           (transform {:bakery {:new {:name :new-name
+                                      :street :new-street}
+                                :old {:name :old-name}
+                                :old-name :old-name
+                                :fixed-val 10}}
+                      {:new-name "Padoca"
+                       :new-street "Geologicka"
+                       :old-name "Pekarstvi"}))))
+  (testing "deep transform with keywords, fixed value and fn"
+    (is (= {:bakery {:new {:name "Padoca"
+                           :street "new-street=Geologicka"}
+                     :old {:name "Pekarstvi"}
+                     :fixed-val 10}}
+           (transform {:bakery {:new {:name :new-name
+                                      :street (fn [_ k]
+                                                (str "new-" (name k) "=Geologicka"))}
+                                :old {:name :old-name}
+                                :fixed-val 10}}
+                      {:new-name "Padoca"
+                       :new-street "Geologicka"
+                       :old-name "Pekarstvi"})))))
