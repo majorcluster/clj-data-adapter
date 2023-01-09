@@ -73,12 +73,13 @@
 (defn transform
  "Recursively transform map m using placeholder-map as a source
  for extracting values and building it
- ex. (transform {:a {:name :a-name} :b \"Fixed value\"} {:a-name \"Aaay\"})
-    => {:a {:name \"Aaay\"} :b \"Fixed value\"}"
+ ex. (transform {:a {:name :a-name} :b \"Fixed value\" :c-name [:c :name]} {:a-name \"Aaay\" :c {:name \"C\"}})
+    => {:a {:name \"Aaay\"} :b \"Fixed value\" :c-name \"C\"}"
  ([acc-m placeholder-map m]
   (reduce (fn [acc-m [k v]]
             (cond (keyword? v) (assoc acc-m k (get m v v))
                   (map? v) (assoc acc-m k (transform {} v m))
+                  (coll? v) (assoc acc-m k (get-in m v v))
                   (fn? v) (assoc acc-m k (v m k))
                   :else (assoc acc-m k v)))
           acc-m placeholder-map))

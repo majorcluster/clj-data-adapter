@@ -36,12 +36,13 @@
   - k : key from entry, not used
   - v : value from entry to be converted
   - returns value converted if `uuid?`
-- <a id='transform-keys'></a> **transform** [placeholder-map m]
+- <a id='transform'></a> **transform** [placeholder-map m]
   - Recursively transforms map `m` following patterns defined at `placeholder-map`.
 ```clojure
-(transform {:a :a-name 
-            :b "Fixed value"} {:a-name "Aay"})
-; => {:a "Aay", :b "Fixed value"}
+(transform {:a :a-name
+            :b "Fixed value"
+            :c-name [:c :name]} {:a-name "Aay" :c {:name "C"}})
+; => {:a "Aay", :b "Fixed value", :c-name "C"}
 
 (transform {:a {:name :a-name
                 :surname (fn [m k] "the Letter")}

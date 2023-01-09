@@ -152,4 +152,27 @@
                                 :fixed-val 10}}
                       {:new-name "Padoca"
                        :new-street "Geologicka"
-                       :old-name "Pekarstvi"})))))
+                       :old-name "Pekarstvi"}))))
+  (testing "deep transform with keywords, fixed value and cols"
+    (is (= {:bakery {:new {:name "Padoca"
+                           :main-baker "Maria"
+                           :other-bakers ["Joao","Martin","Chico"]
+                           :first-other-baker "Joao"
+                           :second-other-baker "Martin"
+                           :last-other-baker "Chico"
+                           :fixed-col [1 2]}
+                     :old {:name "Pekarstvi"}
+                     :fixed-val 10}}
+           (transform {:bakery {:new {:name :new-name
+                                      :main-baker [:bakers :main]
+                                      :other-bakers [:bakers :others]
+                                      :first-other-baker [:bakers :others 0]
+                                      :second-other-baker [:bakers :others 1]
+                                      :last-other-baker [:bakers :others 2]
+                                      :fixed-col [1 2]}
+                                :old {:name :old-name}
+                                :fixed-val 10}}
+                      {:new-name "Padoca"
+                       :new-street "Geologicka"
+                       :old-name "Pekarstvi"
+                       :bakers {:main "Maria" :others ["Joao","Martin","Chico"]}})))))
