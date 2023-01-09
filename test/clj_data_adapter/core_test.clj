@@ -168,7 +168,7 @@
                                       :other-bakers [:bakers :others]
                                       :first-other-baker [:bakers :others 0]
                                       :second-other-baker [:bakers :others 1]
-                                      :last-other-baker [:bakers :others 2]
+                                      :last-other-baker [:bakers :others last]
                                       :fixed-col [1 2]}
                                 :old {:name :old-name}
                                 :fixed-val 10}}

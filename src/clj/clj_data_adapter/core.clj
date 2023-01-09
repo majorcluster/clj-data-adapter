@@ -70,16 +70,39 @@
   [_ v]
   (cond (uuid? v) (.toString v)
         :else v))
+
+(defn- custom-get-in
+  [m col default-val]
+  (let [mapped (reduce (fn [acc-m el]
+                          (cond (fn? el) (assoc acc-m ::fn el)
+                                :else (->> el
+                                           (conj (::selectors acc-m))
+                                           (assoc acc-m ::selectors))))
+                        {::selectors []
+                         ::fn nil}
+                        col)
+        extraction-fn (fn [val-so-far]
+                        (cond (nil? (::fn mapped)) val-so-far
+                              :else ((::fn mapped) val-so-far)))
+        apply-default (fn [val-so-far]
+                        (if (nil? val-so-far) default-val val-so-far))]
+    (-> m
+        (get-in (::selectors mapped))
+        extraction-fn
+        apply-default)))
+
 (defn transform
  "Recursively transform map m using placeholder-map as a source
  for extracting values and building it
  ex. (transform {:a {:name :a-name} :b \"Fixed value\" :c-name [:c :name]} {:a-name \"Aaay\" :c {:name \"C\"}})
-    => {:a {:name \"Aaay\"} :b \"Fixed value\" :c-name \"C\"}"
+    => {:a {:name \"Aaay\"} :b \"Fixed value\" :c-name \"C\"}
+ ex. (transform {:a-first-name [:a :names 0] :a-last-name [:a :names last]} {:a {:names [\"Aaay\" \"the letter\"]}})\n
+    => {:a-first-name \"Aaay\", :a-last-name \"the letter\"}"
  ([acc-m placeholder-map m]
   (reduce (fn [acc-m [k v]]
             (cond (keyword? v) (assoc acc-m k (get m v v))
                   (map? v) (assoc acc-m k (transform {} v m))
-                  (coll? v) (assoc acc-m k (get-in m v v))
+                  (coll? v) (assoc acc-m k (custom-get-in m v v))
                   (fn? v) (assoc acc-m k (v m k))
                   :else (assoc acc-m k v)))
           acc-m placeholder-map))

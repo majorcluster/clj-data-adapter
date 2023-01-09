@@ -48,6 +48,10 @@
                 :surname (fn [m k] "the Letter")}
             :b 8} {:a-name "Aay"})
 ; => {:a {:name "Aay", :surname "the Letter"}, :b 8}
+
+(transform {:a-first-name [:a :names 0] :a-last-name [:a :names last]}
+           {:a {:names ["Aaay" "the letter"]}})
+; => {:a-first-name "Aaay", :a-last-name "the letter"}
 ```
 - <a id='transform-keys'></a> **transform-keys** [transform-fn coll]
   - Recursively transforms all map keys in coll with the transform-fn.
