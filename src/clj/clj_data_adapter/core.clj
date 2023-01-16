@@ -16,42 +16,81 @@
   [name namespace]
   (str namespace "/" name))
 
+(defn- split-upper-case-groups
+  [s]
+  (reduce (fn [splitted char-n]
+            (let [is-first (empty? splitted)
+                  count-converted (count splitted)
+                  splitted-latest (dec count-converted)
+                  str-when-not-nil #(when-not (nil? %) (str %))
+                  count-latest (count (-> splitted
+                                          last))
+                  latest-single (<= count-latest 1)
+                  latest-uppercase (when-not is-first (re-matches #"^[A-Z]$" (-> splitted
+                                                                                  last
+                                                                                  last
+                                                                                  str-when-not-nil)))
+                  str-char (str char-n)
+                  current-uppercase (re-matches #"^[A-Z]$" str-char)]
+              (cond is-first (conj splitted str-char)
+                    (or (and latest-uppercase current-uppercase)
+                        (and latest-uppercase (not current-uppercase) latest-single)
+                        (and (not latest-uppercase) (not current-uppercase))) (assoc splitted splitted-latest
+                                                                                              (-> splitted
+                                                                                                  (get splitted-latest)
+                                                                                                  (str str-char)))
+                    :else (conj splitted str-char))))
+          [] s))
+
+(defn camel-cased-key->kebab-key
+  [k]
+  (let [named-key (name k)
+        len (count named-key)]
+    (if (<= len 1) (keyword (str/lower-case named-key))
+                   (->> named-key
+                        split-upper-case-groups
+                        (map (fn [s-group]
+                               (str/lower-case s-group)))
+                        (reduce #(str %1 "-" %2))
+                        keyword))))
+
 (defn kebab-key->namespaced-key
   "Converts kebab cased to namespaced keys"
   [namespace k]
   (-> k
-      (name)
+      name
       (add-namespace namespace)
-      (keyword)))
+      keyword))
 
 (defn kebab-key->snake-str
   "Converts kebab key cased to str snake cased"
   [k]
   (-> k
-      (name)
+      name
       (str/replace "-" "_")))
 
 (defn namespaced-key->kebab-key
   "Converts namespaced keys to kebab cased key"
   [k]
   (-> k
-      (name)
+      name
       (str/split #".*\/")
-      (last)
-      (keyword)))
+      last
+      keyword))
 
 (defn snake-key->kebab-key
   "Converts a key snake cased to kebab cased key"
   [k]
-  (-> (name k)
+  (-> k
+      name
       (str/replace "_" "-")
-      (keyword)))
+      keyword))
 
 (defn snake-key->kebab-str
   "Converts a snake key cased to str kebab cased"
   [k]
   (-> k
-      (name)
+      name
       (str/replace "_" "-")))
 
 (defn snake-str->kebab-key
@@ -59,7 +98,7 @@
   [s]
   (-> s
       (str/replace "_" "-")
-      (keyword)))
+      keyword))
 
 (defn str->uuid
   [_ v]

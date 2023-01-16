@@ -46,6 +46,11 @@
              namespaced-key->kebab-key
              [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
               {:test/id 4, :test/price 9.40M}]))))
+  (testing "converts camel cased keys to kebab cased"
+    (is (= [{:id 1, :bread-name "croissant", :unit-grams 200, :price 5.40M, :a 1, :my-bread "croissant"}]
+           (transform-keys
+            camel-cased-key->kebab-key
+            [{:id 1, :breadName "croissant", :UnitGRAMS 200, :PRICE 5.40M, :a 1, "myBread" "croissant"}]))))
   (testing "when fn returns nil, removes kv"
     (is (= [{:test/id 1, :test/name "croissant", :test/price 5.40M}
             {:test/id 4, :test/price 9.40M}]
