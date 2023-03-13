@@ -1,6 +1,6 @@
 (ns clj-data-adapter.core
-  (:require [clojure.walk :as walk]
-            [clojure.string :as str])
+  (:require [clojure.string :as str]
+            [clojure.walk :as walk])
   (:import (java.util UUID)))
 
 (def uuid-pattern
@@ -27,18 +27,18 @@
                                           last))
                   latest-single (<= count-latest 1)
                   latest-uppercase (when-not is-first (re-matches #"^[A-Z]$" (-> splitted
-                                                                                  last
-                                                                                  last
-                                                                                  str-when-not-nil)))
+                                                                                 last
+                                                                                 last
+                                                                                 str-when-not-nil)))
                   str-char (str char-n)
                   current-uppercase (re-matches #"^[A-Z]$" str-char)]
               (cond is-first (conj splitted str-char)
                     (or (and latest-uppercase current-uppercase)
                         (and latest-uppercase (not current-uppercase) latest-single)
                         (and (not latest-uppercase) (not current-uppercase))) (assoc splitted splitted-latest
-                                                                                              (-> splitted
-                                                                                                  (get splitted-latest)
-                                                                                                  (str str-char)))
+                                                                                     (-> splitted
+                                                                                         (get splitted-latest)
+                                                                                         (str str-char)))
                     :else (conj splitted str-char))))
           [] s))
 
@@ -47,12 +47,12 @@
   (let [named-key (name k)
         len (count named-key)]
     (if (<= len 1) (keyword (str/lower-case named-key))
-                   (->> named-key
-                        split-upper-case-groups
-                        (map (fn [s-group]
-                               (str/lower-case s-group)))
-                        (reduce #(str %1 "-" %2))
-                        keyword))))
+        (->> named-key
+             split-upper-case-groups
+             (map (fn [s-group]
+                    (str/lower-case s-group)))
+             (reduce #(str %1 "-" %2))
+             keyword))))
 
 (defn kebab-key->namespaced-key
   "Converts kebab cased to namespaced keys"
@@ -113,13 +113,13 @@
 (defn- custom-get-in
   [m col default-val]
   (let [mapped (reduce (fn [acc-m el]
-                          (cond (fn? el) (assoc acc-m ::fn el)
-                                :else (->> el
-                                           (conj (::selectors acc-m))
-                                           (assoc acc-m ::selectors))))
-                        {::selectors []
-                         ::fn nil}
-                        col)
+                         (cond (fn? el) (assoc acc-m ::fn el)
+                               :else (->> el
+                                          (conj (::selectors acc-m))
+                                          (assoc acc-m ::selectors))))
+                       {::selectors []
+                        ::fn nil}
+                       col)
         extraction-fn (fn [val-so-far]
                         (cond (nil? (::fn mapped)) val-so-far
                               :else ((::fn mapped) val-so-far)))
@@ -130,21 +130,50 @@
         extraction-fn
         apply-default)))
 
+(defn opt
+  "Defines keyword or collection of keyword selectors as optional to be used on transform"
+  [keys]
+  {::opt keys})
+
+(defn- keyword-or-selector-coll?
+  [x]
+  (or (keyword? x)
+      (and (coll? x)
+           (> (count x) 0)
+           (every? #(or (keyword? %)
+                        (int? %)) x))))
+
+(defn- get-transform-unwrapped-val
+  [v]
+  (if (map? v) (or (::opt v)
+                   v)
+      v))
+
+(defn- transform-map
+  [acc-m k v tranformed-v]
+  (let [unwrapped-t-v (get-transform-unwrapped-val tranformed-v)]
+    (if (and (contains? v ::opt)
+             (keyword-or-selector-coll? unwrapped-t-v)
+             (= (get-transform-unwrapped-val v) unwrapped-t-v))
+      acc-m
+      (assoc acc-m k unwrapped-t-v))))
+
 (defn transform
- "Recursively transform map m using placeholder-map as a source
+  "Recursively transform map m using placeholder-map as a source
  for extracting values and building it
  ex. (transform {:a {:name :a-name} :b \"Fixed value\" :c-name [:c :name]} {:a-name \"Aaay\" :c {:name \"C\"}})
     => {:a {:name \"Aaay\"} :b \"Fixed value\" :c-name \"C\"}
  ex. (transform {:a-first-name [:a :names 0] :a-last-name [:a :names last]} {:a {:names [\"Aaay\" \"the letter\"]}})\n
     => {:a-first-name \"Aaay\", :a-last-name \"the letter\"}"
- ([acc-m placeholder-map m]
-  (reduce (fn [acc-m [k v]]
-            (cond (keyword? v) (assoc acc-m k (get m v v))
-                  (map? v) (assoc acc-m k (transform {} v m))
-                  (coll? v) (assoc acc-m k (custom-get-in m v v))
-                  (fn? v) (assoc acc-m k (v m k))
-                  :else (assoc acc-m k v)))
-          acc-m placeholder-map))
+  ([acc-m placeholder-map m]
+   (reduce (fn [acc-m [k v]]
+             (let [unwrapped-v (get-transform-unwrapped-val v)]
+               (cond (keyword? v) (assoc acc-m k (get m unwrapped-v unwrapped-v))
+                     (map? v)     (transform-map acc-m k v (transform {} v m))
+                     (coll? v)    (assoc acc-m k (custom-get-in m unwrapped-v unwrapped-v))
+                     (fn? v)      (assoc acc-m k (v m k))
+                     :else        (assoc acc-m k unwrapped-v))))
+           acc-m placeholder-map))
   ([placeholder-map m]
    (transform {} placeholder-map m)))
 
@@ -153,17 +182,37 @@
   [transform-fn coll]
   (letfn [(transform [x] (if (map? x)
                            (into {} (map (fn [[k v]]
-                                           (if-let [new-key (transform-fn k)]
+                                           (when-let [new-key (transform-fn k)]
                                              [new-key v])) x))
                            x))]
     (walk/postwalk transform coll)))
+
+(defn transform-keys-1-depth
+  "Recursively transforms 1 depth map keys in coll with the transform-fn [k], when result of fn is nil removes the kv"
+  [transform-fn coll]
+  (cond (map? coll) (letfn [(transform [acc-m [k v]]
+                              (if-let [new-key (transform-fn k)]
+                                (assoc acc-m new-key v)
+                                acc-m))]
+                      (reduce transform {} coll))
+        :else (map #(transform-keys-1-depth transform-fn %) coll)))
 
 (defn transform-values
   "Recursively transforms all map values in coll with the transform-fn [k v], when result of fn is nil removes the kv"
   [transform-fn coll]
   (letfn [(transform [x] (if (map? x)
                            (into {} (map (fn [[k v]]
-                                           (if-let [value (transform-fn k v)]
+                                           (when-let [value (transform-fn k v)]
                                              [k value])) x))
                            x))]
     (walk/postwalk transform coll)))
+
+(defn transform-values-1-depth
+  "Recursively transforms 1 depth map values in coll with the transform-fn [v], when result of fn is nil removes the kv"
+  [transform-fn coll]
+  (cond (map? coll) (letfn [(transform [acc-m [k v]]
+                              (if-let [value (transform-fn k v)]
+                                (assoc acc-m k value)
+                                acc-m))]
+                      (reduce transform {} coll))
+        :else (map #(transform-values-1-depth transform-fn %) coll)))

@@ -1,6 +1,10 @@
 (ns clj-data-adapter.core-test
-  (:require [clojure.test :refer :all]
-            [clj-data-adapter.core :refer :all]))
+  (:require [clj-data-adapter.core :refer [camel-cased-key->kebab-key
+                                           kebab-key->namespaced-key
+                                           kebab-key->snake-str namespaced-key->kebab-key opt snake-key->kebab-key snake-key->kebab-str
+                                           snake-str->kebab-key str->uuid transform transform-keys transform-keys-1-depth
+                                           transform-values transform-values-1-depth uuid->str]]
+            [clojure.test :refer :all]))
 
 (deftest transform-keys-test
   (testing "converts snake cased str to kebab cased keyword"
@@ -13,11 +17,11 @@
     (is (= {"my-message" "something", "payload" {"my-name" "Lenin"}}
            (transform-keys snake-key->kebab-str {"my_message" "something" :payload {"my_name" "Lenin"}}))))
   (testing "coverts snake cased str from vector to kebab cased keyword"
-    (is (= [{:my-message "something" :payload {:my-name "Lenin"}}{:my-age 43}]
+    (is (= [{:my-message "something" :payload {:my-name "Lenin"}} {:my-age 43}]
            (transform-keys snake-str->kebab-key [{"my_message" "something", "payload" {"my_name" "Lenin"}} {"my_age" 43}]))))
   (testing "converts kebab cased keys from vector to snake cased str"
-    (is (= [{"my_message" "something", "payload" {"my_name" "Lenin"}}{"my_age" 43}]
-           (transform-keys kebab-key->snake-str [{:my-message "something" :payload {:my-name "Lenin"}}{:my-age 43}]))))
+    (is (= [{"my_message" "something", "payload" {"my_name" "Lenin"}} {"my_age" 43}]
+           (transform-keys kebab-key->snake-str [{:my-message "something" :payload {:my-name "Lenin"}} {:my-age 43}]))))
   (testing "converts snaked keys in a list to kebab cased keys"
     (is (= '({:id 1, :name "croissant", :unit-grams 200, :price 5.40M})
            (transform-keys snake-key->kebab-key '({:id 1, :name "croissant", :unit_grams 200, :price 5.40M})))))
@@ -33,9 +37,9 @@
     (is (= [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
             {:test/id 4, :test/price 9.40M}]
            (transform-keys
-             (partial kebab-key->namespaced-key "test")
-             [{:id 1, :name "croissant", :unit-grams 200, :price 5.40M}
-              {:id 4, :price 9.40M}]))))
+            (partial kebab-key->namespaced-key "test")
+            [{:id 1, :name "croissant", :unit-grams 200, :price 5.40M}
+             {:id 4, :price 9.40M}]))))
   (testing "converts namespaced keys to kebab cased keys"
     (is (= {:id 1, :name "croissant", :unit-grams 200, :price 5.40M}
            (transform-keys namespaced-key->kebab-key {:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}))))
@@ -43,9 +47,9 @@
     (is (= [{:id 1, :name "croissant", :unit-grams 200, :price 5.40M}
             {:id 4, :price 9.40M}]
            (transform-keys
-             namespaced-key->kebab-key
-             [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
-              {:test/id 4, :test/price 9.40M}]))))
+            namespaced-key->kebab-key
+            [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
+             {:test/id 4, :test/price 9.40M}]))))
   (testing "converts camel cased keys to kebab cased"
     (is (= [{:id 1, :bread-name "croissant", :unit-grams 200, :price 5.40M, :a 1, :my-bread "croissant"}]
            (transform-keys
@@ -55,9 +59,9 @@
     (is (= [{:test/id 1, :test/name "croissant", :test/price 5.40M}
             {:test/id 4, :test/price 9.40M}]
            (transform-keys
-             #(if (= :test/unit-grams %) nil %)
-             [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
-              {:test/id 4, :test/price 9.40M}]))))
+            #(if (= :test/unit-grams %) nil %)
+            [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
+             {:test/id 4, :test/price 9.40M}]))))
   (testing "empties give no ex"
     (is (= {}
            (transform-keys namespaced-key->kebab-key {})))
@@ -67,6 +71,15 @@
            (transform-keys namespaced-key->kebab-key nil)))
     (is (= [nil]
            (transform-keys namespaced-key->kebab-key [nil])))))
+
+(deftest transform-keys-1-depth-test
+  (testing "converts all base props"
+    (are [expected-m m transform-fn] (= expected-m (transform-keys-1-depth transform-fn m))
+      {:a 1 :b 2} {"a" 1 "b" 2} keyword
+      {:a 1 :b 2 :c {"id" 2}} {"a" 1 "b" 2 "c" {"id" 2}} keyword
+      [{:a 1 :b 2} {:a 1 :b 2 :c {"id" 2}}] [{"a" 1 "b" 2} {"a" 1 "b" 2 "c" {"id" 2}}] keyword
+      {} {} keyword
+      {:a 1} {:a 1 :b nil} #(when (= :a %) %))))
 
 (deftest transform-values-test
   (testing "empties give no ex"
@@ -81,8 +94,8 @@
   (testing "converts str uuids into uuid"
     (is (= {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
            (transform-values str->uuid {:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"})))
-    (is (= [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "croissant"}]
-           (transform-values str->uuid [{:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "croissant"}])))
+    (is (= [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"} {:name "croissant"}]
+           (transform-values str->uuid [{:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"} {:name "croissant"}])))
     (is (= [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
             {:name "croissant" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544a"}]
            (transform-values str->uuid [{:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
@@ -90,8 +103,8 @@
   (testing "converts uuids into str"
     (is (= {:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
            (transform-values uuid->str {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"})))
-    (is (= [{:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "croissant"}]
-           (transform-values uuid->str [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "croissant"}])))
+    (is (= [{:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"} {:name "croissant"}]
+           (transform-values uuid->str [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"} {:name "croissant"}])))
     (is (= [{:name "pita" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
             {:name "croissant" :id "4a26cc9f-e854-4f93-b6c5-cda86c48544a"}]
            (transform-values uuid->str [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
@@ -114,9 +127,20 @@
     (is (= {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}
            (transform-values #(if (= % :from) nil %2)
                              {:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c" :from "Lebanon"})))
-    (is (= [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"}{:name "croissant"}]
+    (is (= [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c"} {:name "croissant"}]
            (transform-values #(if (= %2 "Lebanon") nil %2)
-                             [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c" :from "Lebanon"}{:name "croissant"}])))))
+                             [{:name "pita" :id #uuid "4a26cc9f-e854-4f93-b6c5-cda86c48544c" :from "Lebanon"} {:name "croissant"}])))))
+
+(deftest transform-values-1-depth-test
+  (testing "converts all base values"
+    (letfn [(convert-value [_ v] (cond (string? v) (keyword v)
+                                       :else v))]
+      (are [expected-m m transform-fn] (= expected-m (transform-values-1-depth transform-fn m))
+        {:a :val-a :b :val-b} {:a "val-a" :b "val-b"} convert-value
+        {:a :val-a :b :val-b :c {:id "c-id"}} {:a "val-a" :b "val-b" :c {:id "c-id"}} convert-value
+        [{:a :val-a :b :val-b} {:a :val-a :b :val-b :c {:id "c-id"}}] [{:a "val-a" :b "val-b"} {:a "val-a" :b "val-b" :c {:id "c-id"}}] convert-value
+        {} {} convert-value
+        {:a 1} {:a 1 :b nil} (fn [_ v] (when (= 1 v) v))))))
 
 (deftest transform-test
   (testing "simple transform"
@@ -177,6 +201,42 @@
                                       :fixed-col [1 2]}
                                 :old {:name :old-name}
                                 :fixed-val 10}}
+                      {:new-name "Padoca"
+                       :new-street "Geologicka"
+                       :old-name "Pekarstvi"
+                       :bakers {:main "Maria" :others ["Joao","Martin","Chico"]}}))))
+  (testing "deep transform keys are returned when no optional is present"
+    (is (= {:bakery {:new {:name "Padoca"
+                           :main-baker "Maria"
+                           :missing-baker [:bakers :missing]
+                           :fixed-col [1 2]}
+                     :old {:name "Pekarstvi"}
+                     :missing :missing
+                     :fixed-val 10}}
+           (transform {:bakery {:new {:name :new-name
+                                      :main-baker [:bakers :main]
+                                      :missing-baker [:bakers :missing]
+                                      :fixed-col [1 2]}
+                                :old {:name :old-name}
+                                :missing :missing
+                                :fixed-val 10}}
+                      {:new-name "Padoca"
+                       :new-street "Geologicka"
+                       :old-name "Pekarstvi"
+                       :bakers {:main "Maria" :others ["Joao","Martin","Chico"]}}))))
+  (testing "deep transform keys ignored when optional is present"
+    (is (= {:bakery {:new {:name "Padoca"
+                           :main-baker "Maria"
+                           :fixed-col [1 2]}
+                     :old {:name "Pekarstvi"}
+                     :fixed-val 10}}
+           (transform {:bakery {:new {:name :new-name
+                                      :main-baker [:bakers :main]
+                                      :missing-baker (opt [:bakers :missing])
+                                      :fixed-col [1 2]}
+                                :old {:name :old-name}
+                                :missing (opt :missing)
+                                :fixed-val (opt 10)}}       ; opt + int is not really opt, just testing that it returns 10 and does not break anything
                       {:new-name "Padoca"
                        :new-street "Geologicka"
                        :old-name "Pekarstvi"

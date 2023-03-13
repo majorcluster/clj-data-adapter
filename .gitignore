@@ -16,3 +16,6 @@ pom.xml.asc
 *.iml
 
 .DS_Store
+
+/.lsp/.cache
+/.clj-kondo/.cache
