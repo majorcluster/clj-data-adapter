@@ -240,4 +240,23 @@
                       {:new-name "Padoca"
                        :new-street "Geologicka"
                        :old-name "Pekarstvi"
-                       :bakers {:main "Maria" :others ["Joao","Martin","Chico"]}})))))
+                       :bakers {:main "Maria" :others ["Joao","Martin","Chico"]}}))))
+  (testing "when converted submap is empty it is brought to the final map"
+    (is (= {:bakery {:fixed-val 10
+                     :new       {}}}
+           (transform {:bakery {:new {:missing-baker (opt [:bakers :missing])}
+                                :missing (opt :missing)
+                                :fixed-val (opt 10)}}
+                      {}))))
+  (testing "when clear-empty opts are passed"
+    (is (= {:bakery {:fixed-val 10}}
+           (transform {:bakery {:new {:missing-baker (opt [:bakers :missing])}
+                                :missing (opt :missing)
+                                :fixed-val (opt 10)}}
+                      {} {:data-adapter-transform/clear-empty true})))
+    (is (= {:bakery {:fixed-val 10
+                     :new       {}}}
+           (transform {:bakery {:new {:missing-baker (opt [:bakers :missing])}
+                                :missing (opt :missing)
+                                :fixed-val (opt 10)}}
+                      {} {:data-adapter-transform/clear-empty false})))))

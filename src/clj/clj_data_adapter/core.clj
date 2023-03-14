@@ -150,32 +150,39 @@
       v))
 
 (defn- transform-map
-  [acc-m k v tranformed-v]
+  [acc-m k v tranformed-v opts]
   (let [unwrapped-t-v (get-transform-unwrapped-val tranformed-v)]
     (if (and (contains? v ::opt)
              (keyword-or-selector-coll? unwrapped-t-v)
              (= (get-transform-unwrapped-val v) unwrapped-t-v))
       acc-m
-      (assoc acc-m k unwrapped-t-v))))
+      #_(assoc acc-m k unwrapped-t-v)
+      (if (or (not (get opts :data-adapter-transform/clear-empty false))
+              (not (map? unwrapped-t-v))
+              (> (count unwrapped-t-v) 0)) (assoc acc-m k unwrapped-t-v)
+          acc-m))))
 
 (defn transform
   "Recursively transform map m using placeholder-map as a source
- for extracting values and building it
+ for extracting values and building it,
+ optional last arity opts def {:data-adapter-transform/clear-empty ^boolean} ;for clearing out empty maps
  ex. (transform {:a {:name :a-name} :b \"Fixed value\" :c-name [:c :name]} {:a-name \"Aaay\" :c {:name \"C\"}})
     => {:a {:name \"Aaay\"} :b \"Fixed value\" :c-name \"C\"}
  ex. (transform {:a-first-name [:a :names 0] :a-last-name [:a :names last]} {:a {:names [\"Aaay\" \"the letter\"]}})\n
     => {:a-first-name \"Aaay\", :a-last-name \"the letter\"}"
-  ([acc-m placeholder-map m]
+  ([acc-m placeholder-map m opts]
    (reduce (fn [acc-m [k v]]
              (let [unwrapped-v (get-transform-unwrapped-val v)]
                (cond (keyword? v) (assoc acc-m k (get m unwrapped-v unwrapped-v))
-                     (map? v)     (transform-map acc-m k v (transform {} v m))
+                     (map? v)     (transform-map acc-m k v (transform {} v m opts) opts)
                      (coll? v)    (assoc acc-m k (custom-get-in m unwrapped-v unwrapped-v))
                      (fn? v)      (assoc acc-m k (v m k))
                      :else        (assoc acc-m k unwrapped-v))))
            acc-m placeholder-map))
+  ([placeholder-map m opts]
+   (transform {} placeholder-map m opts))
   ([placeholder-map m]
-   (transform {} placeholder-map m)))
+   (transform {} placeholder-map m {})))
 
 (defn transform-keys
   "Recursively transforms all map keys in coll with the transform-fn [k], when result of fn is nil removes the kv"
