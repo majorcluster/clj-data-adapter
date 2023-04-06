@@ -1,4 +1,4 @@
-(defproject org.clojars.majorcluster/clj-data-adapter "0.8.3"
+(defproject org.clojars.majorcluster/clj-data-adapter "0.8.4"
   :description "A Clojure data adapter library to convert your data between your layers"
   :url "https://github.com/majorcluster/clj-data-adapter"
   :license {:name "The MIT License"
