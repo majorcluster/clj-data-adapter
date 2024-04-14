@@ -69,6 +69,16 @@
       name
       (str/replace "-" "_")))
 
+(defn namespaced-key->snake-key
+  "Converts namespaced kebab keys to snake cased key"
+  [k]
+  (-> k
+      name
+      (str/split #".*\/")
+      last
+      (str/replace "-" "_")
+      keyword))
+
 (defn namespaced-key->kebab-key
   "Converts namespaced keys to kebab cased key"
   [k]

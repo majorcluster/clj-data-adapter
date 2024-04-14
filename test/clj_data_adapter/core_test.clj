@@ -3,7 +3,8 @@
                                            kebab-key->namespaced-key
                                            kebab-key->snake-str namespaced-key->kebab-key opt snake-key->kebab-key snake-key->kebab-str
                                            snake-str->kebab-key str->uuid transform transform-keys transform-keys-1-depth
-                                           transform-values transform-values-1-depth uuid->str]]
+                                           transform-values transform-values-1-depth uuid->str
+                                           namespaced-key->snake-key]]
             [clojure.test :refer :all]))
 
 (deftest transform-keys-test
@@ -50,6 +51,16 @@
             namespaced-key->kebab-key
             [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
              {:test/id 4, :test/price 9.40M}]))))
+  (testing "converts namespaced keys to snake cased keys"
+      (is (= {:id 1, :name "croissant", :unit_grams 200, :price 5.40M}
+             (transform-keys namespaced-key->snake-key {:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}))))
+  (testing "converts namespaced keys in a vector to snake cased keys"
+      (is (= [{:id 1, :name "croissant", :unit_grams 200, :price 5.40M}
+              {:id 4, :price 9.40M}]
+             (transform-keys
+              namespaced-key->snake-key
+              [{:test/id 1, :test/name "croissant", :test/unit-grams 200, :test/price 5.40M}
+               {:test/id 4, :test/price 9.40M}]))))
   (testing "converts camel cased keys to kebab cased"
     (is (= [{:id 1, :bread-name "croissant", :unit-grams 200, :price 5.40M, :a 1, :my-bread "croissant"}]
            (transform-keys
